@@ -37,15 +37,18 @@ CONTEXT_SETTINGS = {
 # utils
 ################################################################################
 
+
+# There's a problem here: 
+# this function protocol is not clear, returns a str or bytes?
 def _dumps(obj, fmt=None):
     if fmt == 'toml':
-        return toml.dumps(obj)
+        return toml.dumps(obj) # this is a str
     elif fmt == 'json':
-        return json.dumps(obj, sort_keys=True, indent=2, default=json_util.default)
+        return json.dumps(obj, sort_keys=True, indent=2, default=json_util.default) # this is a str
     elif fmt == 'python':
-        return pformat(obj, indent=2)
+        return pformat(obj, indent=2) # this is a str
     elif fmt == 'pickle':
-        return pickle.dumps(obj)
+        return pickle.dumps(obj) # this is a bytes
     else:
         return str(obj)
 
@@ -268,8 +271,13 @@ def export(ctx, trac_uri, ssl_verify, format, out_file):  # pylint: disable=rede
     project = _dumps(project, fmt=format)
     if out_file:
         LOG.info('writing export to %s', out_file)
-        with codecs.open(out_file, 'wb', encoding='utf-8') as out_f:
-            out_f.write(project)
+        if format == 'pickle':
+            # this is because _dumps returns a bytes in case of pickle format
+            with open(out_file, 'wb') as out_f:
+                out_f.write(project)
+        else:
+            with codecs.open(out_file, 'wb', encoding='utf-8') as out_f:
+                out_f.write(project)
     else:
         click.echo(project)
 

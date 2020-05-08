@@ -2,6 +2,7 @@
 
 import logging
 import ssl
+import sys
 
 import six
 from six.moves import xmlrpc_client as xmlrpc
@@ -10,13 +11,15 @@ LOG = logging.getLogger(__name__)
 
 
 def _safe_retrieve_data(data, encoding='base64'):
+    if (sys.version_info > (3, 0)):
+        data = str(data)
+    
     try:
         # six.b(data.decode(encoding))
         return six.b(data)
     except Exception as err:  # pylint: disable=broad-except
         LOG.exception('error while decoding data from %s', encoding)
-        return str(err)
-
+        return str(data)    
 
 def _authors_collect(wiki=None, tickets=None):
     wiki = wiki or {}
