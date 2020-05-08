@@ -24,7 +24,7 @@ setup(
     packages=find_packages(where='src'),
     install_requires=[
         'peewee',
-        'psycopg2',
+        'psycopg2-binary',
         'six',
         'click',
         'toml',
