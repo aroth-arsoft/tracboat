@@ -151,6 +151,13 @@ def GITLAB_OPTIONS(func):  # pylint: disable=invalid-name
         help='GitLab database path',
     )
     @click.option(
+        '--gitlab-db-port',
+        type=click.Path(),
+        default=5432,
+        show_default=True,
+        help='GitLab database port',
+    )
+    @click.option(
         '--gitlab-uploads-path',
         type=click.Path(),
         default='/var/opt/gitlab/gitlab-rails/uploads',
@@ -330,7 +337,7 @@ def export(ctx, trac_uri, ssl_verify, format, out_file):  # pylint: disable=rede
 @click.pass_context
 def migrate(ctx, umap, umap_file, fallback_user, trac_uri, ssl_verify,
             gitlab_project_name, gitlab_db_user, gitlab_db_password, gitlab_db_name,
-            gitlab_db_path, gitlab_uploads_path, gitlab_version, wiki_path,
+            gitlab_db_path, gitlab_db_port, gitlab_uploads_path, gitlab_version, wiki_path,
             from_export_file, mock, mock_path):
     """migrate a Trac instance"""
     LOG = logging.getLogger(ctx.info_name)
@@ -396,12 +403,13 @@ def migrate(ctx, umap, umap_file, fallback_user, trac_uri, ssl_verify,
         LOG.info('migrating Trac project to GitLab')
         # pylint: disable=redefined-variable-type
         db_connector = peewee.PostgresqlDatabase(gitlab_db_name, user=gitlab_db_user,
-                                                 password=gitlab_db_password, host=gitlab_db_path)
+                                                 password=gitlab_db_password, host=gitlab_db_path, port=gitlab_db_port)
     # 3. Migrate
     LOG.info('Trac: %s', _sanitize_url(trac_uri))
     LOG.info('GitLab project: %s', gitlab_project_name)
     LOG.info('GitLab version: %s', gitlab_version)
     LOG.info('GitLab db path: %s', gitlab_db_path)
+    LOG.info('GitLab db port: %s', gitlab_db_port)
     LOG.info('GitLab db name: %s', gitlab_db_name)
     LOG.info('GitLab uploads: %s', gitlab_uploads_path)
     LOG.info('GitLab fallback user: %s', fallback_user)
