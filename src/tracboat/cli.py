@@ -153,7 +153,7 @@ def GITLAB_OPTIONS(func):  # pylint: disable=invalid-name
     @click.option(
         '--gitlab-db-port',
         type=click.Path(),
-        default=5432,
+        default='5432',
         show_default=True,
         help='GitLab database port',
     )
