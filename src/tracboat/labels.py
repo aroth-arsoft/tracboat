@@ -75,6 +75,7 @@ class LabelStatus(LabelAbstract):
         'accepted': 'opened',
         'reopened': 'opened',
         'closed': 'closed',
+        'not_invoiced': 'closed'
     }
 
 class LabelSet():
