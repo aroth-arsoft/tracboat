@@ -522,7 +522,6 @@ class MergeRequestDiffs(BaseModel):
     external_diff = CharField(null=True)
     external_diff_store = IntegerField(null=True)
     head_commit_sha = CharField(null=True)
-    merge_request = ForeignKeyField(db_column='merge_request_id', model=MergeRequests, to_field='id')
     real_size = CharField(null=True)
     start_commit_sha = CharField(null=True)
     state = CharField(null=True)
@@ -566,7 +565,6 @@ class MergeRequests(BaseModel):
     description = TextField(index=True, null=True)
     description_html = TextField(null=True)
     discussion_locked = BooleanField(null=True)
-    head_pipeline = ForeignKeyField(db_column='head_pipeline_id', null=True, model=CiPipelines, to_field='id')
     iid = IntegerField(null=True)
     in_progress_merge_commit_sha = CharField(null=True)
     last_edited_at = DateTimeField(null=True)
@@ -605,6 +603,8 @@ class MergeRequests(BaseModel):
             (('target_project', 'iid'), True),
             (('target_project', 'merge_commit_sha', 'id'), False),
         )
+
+MergeRequestDiffs.merge_request = ForeignKeyField(db_column='merge_request_id', model=MergeRequests, to_field='id')
 
 class CiPipelineSchedules(BaseModel):
     active = BooleanField(null=True)
@@ -661,6 +661,8 @@ class CiPipelines(BaseModel):
             (('project', 'sha'), False),
             (('source', 'project'), False),
         )
+
+MergeRequests.head_pipeline = ForeignKeyField(db_column='head_pipeline_id', null=True, model=CiPipelines, to_field='id')
 
 class CiStages(BaseModel):
     created_at = DateTimeField(null=True)
