@@ -346,7 +346,6 @@ class PoolRepositories(BaseModel):
     disk_path = CharField(null=True, unique=True)
     id = BigIntegerField(primary_key=True)
     shard = ForeignKeyField(db_column='shard_id', model=Shards, to_field='id')
-    source_project = ForeignKeyField(db_column='source_project_id', null=True, model=Projects, to_field='id', unique=True)
     state = CharField(null=True)
 
     class Meta:
@@ -415,6 +414,10 @@ class Projects(BaseModel):
         indexes = (
             (('repository_storage', 'created_at'), False),
         )
+
+# add the dependency for Projects to the PoolRepositories class after Projects have been defined
+PoolRepositories.source_project = ForeignKeyField(db_column='source_project_id', null=True, model=Projects, to_field='id', unique=True)
+
 
 class Badges(BaseModel):
     created_at = DateTimeField()
