@@ -107,7 +107,7 @@ class Connection(ConnectionBase):
         project = self._get_project(self.project_name, self.project_namespace)
         if not project:
             raise ValueError("Project {!r} not found".format(self.project_qualname))
-        return project["id"]
+        return project
 
     def _get_project(self, p_name, p_namespace=None):
         M = self.model
@@ -120,7 +120,7 @@ class Connection(ConnectionBase):
                            (M.Namespaces.path == p_namespace)).get()
             else:
                 project = M.Projects.select().where(M.Projects.name == p_name).get()
-            return project._data  # pylint: disable=protected-access
+            return project
         except M.Projects.DoesNotExist:
             return None
 
@@ -170,7 +170,7 @@ class Connection(ConnectionBase):
             milestone = M.Milestones.select().where(
                 (M.Milestones.title == milestone_name) &
                 (M.Milestones.project == self.project_id)).get()
-            return milestone._data if milestone else None  # pylint: disable=protected-access
+            return milestone if milestone else None  # pylint: disable=protected-access
         except M.Milestones.DoesNotExist:
             return None
 
@@ -179,7 +179,7 @@ class Connection(ConnectionBase):
 
     def get_milestone_id(self, milestone_name):
         milestone = self.get_milestone(milestone_name)
-        return milestone["id"] if milestone else None
+        return milestone
 
     def get_user(self, email):
         M = self.model

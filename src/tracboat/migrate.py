@@ -285,10 +285,20 @@ def merge_changelog(ticket_id, changelog, usermanager):
 def ticket_state(ticket):
     status_to_state = LabelStatus.MAPPING
     state = ticket['attributes']['status']
-    return status_to_state[state]
+    s = status_to_state.get(state, 'unknown')
+    #LOG.info("ticket_state: %s->%s" % (state, s))
+    return s
+
+def ticket_state_id(ticket):
+    status_to_state = LabelStatus.MAPPING
+    state = ticket['attributes']['status']
+    s = status_to_state.get(state, 'opened')
+    return 2 if s == 'closed' else 1
 
 def update_timetracking(issue_args, ticket):
     def convert(hours):
+        if not hours:
+            return 0
         seconds = float(hours) * 60 * 60
         return seconds
 
@@ -303,6 +313,7 @@ def migrate_tickets(trac_tickets, gitlab, svn2git_revisions={}, labelmanager=Non
     LOG.info('MIGRATING %d tickets to issues', len(trac_tickets))
 
     for ticket_id, ticket in six.iteritems(trac_tickets):
+        ticket_id = int(ticket_id)
         LOG.info('migrate #%d: %r', ticket_id, ticket)
         # trac note_id -> gitlab note_id
         note_map = {}
@@ -314,6 +325,8 @@ def migrate_tickets(trac_tickets, gitlab, svn2git_revisions={}, labelmanager=Non
             issue_args['state'] = label_set.get_status_label().title
         else:
             issue_args['state'] = ticket_state(ticket)
+
+        issue_args['state_id'] = ticket_state_id(ticket)
 
         issue_args['labels'] = ','.join(label_set.get_label_titles())
         issue_args['author'] = usermanager.get_email(issue_args['author'])
@@ -419,6 +432,16 @@ def migrate_wiki(trac_wiki, gitlab, output_dir):
         LOG.debug('migrated wiki page %s', title)
 
 
+def mkdir_p(path):
+    import errno
+    try:
+        os.makedirs(path)
+    except OSError as exc:  # Python ≥ 2.5
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
+
 # pylint: disable=too-many-arguments
 def migrate(trac, gitlab_project_name, gitlab_version, gitlab_db_connector,
             output_wiki_path, output_uploads_path, gitlab_fallback_user,
@@ -443,8 +466,9 @@ def migrate(trac, gitlab_project_name, gitlab_version, gitlab_db_connector,
 #    gitlab.clear_labels()
 
     # 1. Wiki
-#    LOG.info('migrating %d wiki pages to: %s', len(trac['wiki']), output_wiki_path)
-#    migrate_wiki(trac['wiki'], gitlab, output_wiki_path)
+    mkdir_p(output_wiki_path)
+    LOG.info('migrating %d wiki pages to: %s', len(trac['wiki']), output_wiki_path)
+    migrate_wiki(trac['wiki'], gitlab, output_wiki_path)
     # 2. Milestones
     migrate_milestones(trac['milestones'], gitlab)
 
