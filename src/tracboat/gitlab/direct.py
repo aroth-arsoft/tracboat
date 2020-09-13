@@ -4,7 +4,9 @@ import os
 import shutil
 import logging
 import glob
+import subprocess
 from datetime import datetime
+from email.utils import format_datetime
 
 from . import ConnectionBase
 
@@ -373,3 +375,57 @@ class Connection(ConnectionBase):
             os.makedirs(directory)
         with open(filename, "wb") as bin_f:
             bin_f.write(binary)
+
+    def get_repository(self, project_id):
+        M = self.model
+        try:
+            repo = M.ProjectRepositories.select().where(
+                (M.ProjectRepositories.project == self.project_id)).get()
+            return repo if repo else None  # pylint: disable=protected-access
+        except M.ProjectRepositories.DoesNotExist:
+            return None
+
+    def wiki_checkout(self, checkout_dir):
+        repo_base_dir = '/var/opt/gitlab/git-data/repositories'
+        repo = self.get_repository(self.project_id)
+        if repo is None:
+            raise Exception("Repository not found: %r" % self.project_id)
+
+        repo_path = os.path.join(repo_base_dir, repo.disk_path + '.wiki.git')
+
+        if os.path.exists(checkout_dir + '/.git'):
+            args = ['git', '-C', checkout_dir, 'pull', 'origin', '--rebase']
+        else:
+            args = ['git', 'clone', repo_path, checkout_dir]
+        exit_code = subprocess.call(args)
+        return True if exit_code == 0 else False
+
+    def wiki_commit(self, checkout_dir, filename, message, author=None, date=None):
+        if not os.path.exists(checkout_dir + '/.git'):
+            raise Exception("Not a git working directory %r" % checkout_dir)
+
+        rel_file = os.path.relpath(filename, checkout_dir)
+        args = ['git', '-C', checkout_dir, 'add', rel_file]
+        exit_code = subprocess.call(args)
+        if exit_code != 0:
+            return False
+
+        args = ['git', '-C', checkout_dir, 'commit', '-m', message]
+        if author is not None:
+            args.extend(['--author', author])
+        if date is not None:
+            if isinstance(date, datetime):
+                args.extend(['--date', format_datetime(date)])
+            else:
+                args.extend(['--date', str(date)])
+        args.append(rel_file)
+        exit_code = subprocess.call(args)
+        return True if exit_code == 0 else False
+
+    def wiki_push(self, checkout_dir):
+        if not os.path.exists(checkout_dir + '/.git'):
+            raise Exception("Not a git working directory %r" % checkout_dir)
+
+        args = ['git', '-C', checkout_dir, 'push']
+        exit_code = subprocess.call(args)
+        return True if exit_code == 0 else False

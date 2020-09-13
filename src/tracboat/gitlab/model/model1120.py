@@ -2567,3 +2567,22 @@ class WebHookLogs(BaseModel):
             (('web_hook', 'created_at'), False),
         )
 
+
+class WikiPageMeta(BaseModel):
+    created_at = DateTimeField()
+    project = ForeignKeyField(db_column='project_id', null=True, model=Projects, to_field='id')
+    updated_at = DateTimeField()
+    title = CharField(null=True)
+
+    class Meta:
+        db_table = 'wiki_page_meta'
+
+class WikiPageSlugs(BaseModel):
+    canonical = BooleanField(null=True)
+    created_at = DateTimeField()
+    wiki_page_meta = ForeignKeyField(db_column='wiki_page_meta_id', null=True, model=WikiPageMeta, to_field='id')
+    updated_at = DateTimeField()
+    slug = CharField(null=True)
+
+    class Meta:
+        db_table = 'wiki_page_slugs'

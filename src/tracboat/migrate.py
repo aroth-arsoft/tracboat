@@ -397,6 +397,11 @@ def migrate_milestones(trac_milestones, gitlab):
         LOG.info('migrated milestone %s -> %s', title, gitlab_milestone_id)
 
 def migrate_wiki(trac_wiki, gitlab, output_dir):
+
+    if not gitlab.wiki_checkout(output_dir):
+        LOG.error('Failed to checkout wiki git %s', output_dir)
+        return
+
     for title, wiki in six.iteritems(trac_wiki):
         page = wiki['page']
         attachments = wiki['attachments']
@@ -429,10 +434,19 @@ def migrate_wiki(trac_wiki, gitlab, output_dir):
                 converted_page += '- [%s](/uploads/migrated/%s)\n' % (filename, filename)
         # Writeout!
         trac2down.save_file(converted_page, title, version, last_modified, author, output_dir)
-        LOG.debug('migrated wiki page %s', title)
+
+        commit_author = '%s <%s>' % (author, author)
+        commit_message = 'trac wiki %s version %s by %s' % (title, version, author)
+        filename = os.path.join(output_dir, title + '.md')
+        gitlab.wiki_commit(output_dir, filename, message=commit_message, author=commit_author, date=last_modified)
+
+    if not gitlab.wiki_push(output_dir):
+        LOG.error('Failed to push wiki git %s', output_dir)
+        return
 
 
-def mkdir_p(path):
+
+def _mkdir_p(path):
     import errno
     try:
         os.makedirs(path)
@@ -461,14 +475,17 @@ def migrate(trac, gitlab_project_name, gitlab_version, gitlab_db_connector,
     # XXX
     # if overwite and mode == direct
     # XXX: make configurable
-    gitlab.clear_issues()
-    gitlab.clear_milestones()
-#    gitlab.clear_labels()
+    if 1:
+        gitlab.clear_issues()
+        gitlab.clear_milestones()
+        # DO not clear all labels
+        #gitlab.clear_labels()
 
     # 1. Wiki
-    mkdir_p(output_wiki_path)
-    LOG.info('migrating %d wiki pages to: %s', len(trac['wiki']), output_wiki_path)
-    migrate_wiki(trac['wiki'], gitlab, output_wiki_path)
+    wiki_git_path = os.path.join(output_wiki_path, gitlab_project_name + '.wiki')
+    _mkdir_p(wiki_git_path)
+    LOG.info('migrating %d wiki pages to: %s', len(trac['wiki']), wiki_git_path)
+    migrate_wiki(trac['wiki'], gitlab, wiki_git_path)
     # 2. Milestones
     migrate_milestones(trac['milestones'], gitlab)
 
